@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from pydatapeekr.inspectors.dataframe import summarize_dataframe
-from pydatapeekr.inspectors.ndarray import summarize_ndarray
+from pydatapeekr.inspectors.ndarray import ndarray_display_type
 from pydatapeekr.inspectors.table import summarize_table
 from pydatapeekr.inspectors.tensor import tensor_display_type
 from pydatapeekr.loaders.pickle_static import PrebuiltInspection, StaticPickleData, inspect_pickle_structure
@@ -147,9 +147,18 @@ def _analyze(
             return node
 
         if ndarray_type is not None and isinstance(obj, ndarray_type):
-            summary = summarize_ndarray(obj, max_items=max_list_items)
-            node["summary"] = f"ndarray {tuple(summary['shape'])}"
-            node["meta"] = summary
+            node["summary"] = ndarray_display_type(obj)
+            if str(getattr(obj, "dtype", "")) == "object":
+                _attach_object_array_children(
+                    obj,
+                    node=node,
+                    depth=depth,
+                    max_depth=max_depth,
+                    max_dict_items=max_dict_items,
+                    max_list_items=max_list_items,
+                    show_sample=show_sample,
+                    active_path=active_path,
+                )
             return node
 
         if tensor_type is not None and isinstance(obj, tensor_type):
@@ -287,6 +296,59 @@ def _analyze_sequence(
     if hidden:
         node["truncated_items"] = hidden
     return node
+
+
+def _attach_object_array_children(
+    obj: Any,
+    *,
+    node: dict[str, Any],
+    depth: int,
+    max_depth: int,
+    max_dict_items: int,
+    max_list_items: int,
+    show_sample: bool,
+    active_path: set[int],
+) -> None:
+    """Recursively inspect object-dtype ndarray elements."""
+    shape = getattr(obj, "shape", ())
+    if shape == ():
+        value = obj.item()
+        if _is_basic_type(value):
+            return
+        node["children"] = [
+            _analyze(
+                value,
+                name="value",
+                depth=depth + 1,
+                max_depth=max_depth,
+                max_dict_items=max_dict_items,
+                max_list_items=max_list_items,
+                show_sample=show_sample,
+                active_path=active_path,
+            )
+        ]
+        return
+
+    shown, hidden = truncate_sequence_items(list(obj), max_list_items)
+    children = []
+    for index, value in enumerate(shown):
+        children.append(
+            _analyze(
+                value,
+                name=f"[{index}]",
+                depth=depth + 1,
+                max_depth=max_depth,
+                max_dict_items=max_dict_items,
+                max_list_items=max_list_items,
+                show_sample=show_sample,
+                active_path=active_path,
+            )
+        )
+
+    if children:
+        node["children"] = children
+    if hidden:
+        node["truncated_items"] = hidden
 
 
 def _is_basic_type(obj: Any) -> bool:

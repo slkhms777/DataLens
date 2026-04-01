@@ -12,4 +12,4 @@ __pycache__/
 *.csv
 *.tsv
 *.jsonl
-dataset_infos.json
+/dist

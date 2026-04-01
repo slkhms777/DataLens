@@ -98,8 +98,27 @@ class ApiTests(unittest.TestCase):
             )
             output = inspect_file(file_path, max_depth=3)
         self.assertIn("sample.npz: dict (2 keys)", output)
-        self.assertIn('"states": ndarray (2, 2)', output)
-        self.assertIn('"rewards": ndarray (3,)', output)
+        self.assertIn('"states": ndarray(shape=(2, 2), dtype=float32)', output)
+        self.assertIn('"rewards": ndarray(shape=(3,), dtype=int64)', output)
+
+    @unittest.skipUnless(importlib.util.find_spec("numpy"), "numpy is required for .npy loader tests")
+    def test_inspect_file_npy_loader_unwraps_pickled_dict_payload(self) -> None:
+        import numpy as np
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            file_path = Path(tmp_dir) / "sample.npy"
+            np.save(
+                file_path,
+                {
+                    "observations": np.array([1.0, 2.0], dtype=np.float32),
+                    "meta": {"seed": 0},
+                },
+                allow_pickle=True,
+            )
+            output = inspect_file(file_path, max_depth=3)
+        self.assertIn("sample.npy: dict (2 keys)", output)
+        self.assertIn('"observations": ndarray(shape=(2,), dtype=float32)', output)
+        self.assertIn('"meta": dict (1 keys)', output)
 
     @unittest.skipUnless(importlib.util.find_spec("pyarrow"), "pyarrow is required for table inspection tests")
     def test_inspect_obj_pyarrow_table_uses_dataframe_like_column_first_view(self) -> None:
@@ -130,8 +149,32 @@ class ApiTests(unittest.TestCase):
         import numpy as np
 
         output = inspect_obj(np.array([1.0, 2.0, 3.0], dtype=np.float32))
-        self.assertIn("root: ndarray (3,)", output)
+        self.assertIn("root: ndarray(shape=(3,), dtype=float32)", output)
+        self.assertNotIn("shape: list", output)
+        self.assertNotIn("dtype:", output)
         self.assertNotIn("<sample>:", output)
+
+    @unittest.skipUnless(importlib.util.find_spec("numpy"), "numpy is required for ndarray inspection tests")
+    def test_inspect_obj_object_ndarray_recurses_into_nested_objects(self) -> None:
+        import numpy as np
+
+        payload = np.array([{"seed": 0, "score": 1.5}], dtype=object)
+        output = inspect_obj(payload, max_depth=4)
+        self.assertIn("root: ndarray(shape=(1,), dtype=object)", output)
+        self.assertIn("[0]: dict (2 keys)", output)
+        self.assertIn('"seed": int', output)
+
+    @unittest.skipUnless(importlib.util.find_spec("numpy"), "numpy is required for ndarray inspection tests")
+    def test_inspect_obj_object_ndarray_stops_at_basic_scalar_values(self) -> None:
+        import numpy as np
+
+        payload = np.array([1, 2.5], dtype=object)
+        output = inspect_obj(payload, max_depth=4, show_sample=True, max_list_items=2)
+        self.assertIn("root: ndarray(shape=(2,), dtype=object)", output)
+        self.assertIn("[0]: int", output)
+        self.assertIn("[1]: float", output)
+        self.assertIn("<sample>: 1", output)
+        self.assertIn("<sample>: 2.5", output)
 
     def test_max_depth_stops_recursion(self) -> None:
         output = inspect_obj({"a": {"b": {"c": 1}}}, max_depth=2)
