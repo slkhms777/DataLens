@@ -18,6 +18,12 @@ pip install -e .
 
 ## 3. CLI 用法
 
+快速开始：
+
+```bash
+datalens your_file_path
+```
+
 查看完整帮助：
 
 ```bash

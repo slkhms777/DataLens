@@ -18,6 +18,12 @@ pip install -e .
 
 ## CLI Usage
 
+Quick Start:
+
+```bash
+datalens your_file_path
+```
+
 Show all CLI options:
 
 ```bash
