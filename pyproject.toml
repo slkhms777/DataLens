@@ -23,6 +23,7 @@ numpy = ["numpy>=1.26"]
 
 [project.scripts]
 pydatapeekr = "pydatapeekr.cli:main"
+peek = "pydatapeekr.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "."}

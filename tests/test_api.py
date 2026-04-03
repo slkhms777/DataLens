@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import io
 import importlib.util
 import pickle
 import tempfile
@@ -8,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pydatapeekr import inspect_file, inspect_obj
+from pydatapeekr import display_file, display_obj, inspect_file, inspect_obj, wrap_output
 
 
 class ApiTests(unittest.TestCase):
@@ -33,6 +34,33 @@ class ApiTests(unittest.TestCase):
         output = inspect_obj([1, "two"], format="markdown")
         self.assertIn("- **root**: list (len=2)", output)
         self.assertIn("`mixed_types`: `True`", output)
+
+    def test_wrap_output_plain_style_returns_original_text(self) -> None:
+        self.assertEqual(wrap_output("hello", style="plain"), "hello")
+
+    def test_wrap_output_blank_style_adds_surrounding_newlines(self) -> None:
+        self.assertEqual(wrap_output("hello", style="blank"), "\nhello\n")
+
+    def test_wrap_output_rule_style_adds_horizontal_rules(self) -> None:
+        wrapped = wrap_output("hello", style="rule")
+        self.assertEqual(wrapped, f"{'-' * 40}\nhello\n{'-' * 40}")
+
+    def test_display_obj_prints_wrapped_output_without_changing_inspect_obj(self) -> None:
+        buffer = io.StringIO()
+        wrapped = display_obj({"a": 1}, style="rule", stream=buffer)
+        self.assertEqual(wrapped, buffer.getvalue().rstrip("\n"))
+        self.assertIn("-" * 40, wrapped)
+        self.assertIn("root: dict (1 keys)", wrapped)
+
+    def test_display_file_prints_blank_wrapped_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            file_path = Path(tmp_dir) / "sample.json"
+            file_path.write_text(json.dumps({"a": 1}), encoding="utf-8")
+            buffer = io.StringIO()
+            wrapped = display_file(file_path, style="blank", stream=buffer)
+        self.assertEqual(wrapped, "\n" + wrapped.strip("\n") + "\n")
+        self.assertEqual(buffer.getvalue(), wrapped + "\n")
+        self.assertIn("sample.json: dict (1 keys)", wrapped)
 
     def test_inspect_file_json_loader(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

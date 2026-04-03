@@ -32,12 +32,15 @@ Quick Start:
 
 ```bash
 pydatapeekr your_file_path
+# short alias
+peek your_file_path
 ```
 
 Show all CLI options:
 
 ```bash
 pydatapeekr --help
+peek --help
 ```
 
 Common example:
@@ -66,9 +69,9 @@ Supported CLI parameters:
 ## API Usage
 
 ```python
-from pydatapeekr import inspect_file, inspect_obj
+import pydatapeekr as peekr
 
-text = inspect_file(
+text = peekr.inspect_file(
     "data.json",
     max_depth=4,
     max_dict_items=8,
@@ -78,7 +81,7 @@ text = inspect_file(
     write_to_file=None,
 )
 
-markdown_text = inspect_obj(
+markdown_text = peekr.inspect_obj(
     {"user": {"id": 1}, "items": [1, 2, 3]},
     max_depth=4,
     max_dict_items=8,
@@ -86,5 +89,10 @@ markdown_text = inspect_obj(
     show_sample=True,
     format="markdown",
     write_to_file="report.md",
+)
+
+peekr.display_obj(
+    {"user": {"id": 1}, "items": [1, 2, 3]},
+    style="rule",  # "plain", "blank", or "rule"
 )
 ```

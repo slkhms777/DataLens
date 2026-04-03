@@ -10,6 +10,21 @@ import json
 
 
 class CliTests(unittest.TestCase):
+    def test_cli_main_entrypoint_supports_short_peek_alias(self) -> None:
+        from pydatapeekr.cli import main
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            file_path = Path(tmp_dir) / "data.json"
+            file_path.write_text(json.dumps({"x": [1, 2]}), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, "-c", f"from pydatapeekr.cli import main; raise SystemExit(main(['{file_path}']))"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("data.json: dict (1 keys)", result.stdout)
+
     def test_cli_tree_output(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             file_path = Path(tmp_dir) / "data.json"

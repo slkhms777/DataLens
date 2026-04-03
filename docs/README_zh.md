@@ -32,12 +32,15 @@ pip install -e .
 
 ```bash
 pydatapeekr your_file_path
+# 简短别名
+peek your_file_path
 ```
 
 查看完整帮助：
 
 ```bash
 pydatapeekr --help
+peek --help
 ```
 
 常用示例：
@@ -66,9 +69,9 @@ pydatapeekr your_file.parquet --max-depth 4 --max-dict-items 8 --max-list-items 
 ## 4. API 用法
 
 ```python
-from pydatapeekr import inspect_file, inspect_obj
+import pydatapeekr as peekr
 
-text = inspect_file(
+text = peekr.inspect_file(
     "data.json",
     max_depth=4,
     max_dict_items=8,
@@ -78,7 +81,7 @@ text = inspect_file(
     write_to_file=None,
 )
 
-markdown_text = inspect_obj(
+markdown_text = peekr.inspect_obj(
     {"user": {"id": 1}, "items": [1, 2, 3]},
     max_depth=4,
     max_dict_items=8,
@@ -86,5 +89,10 @@ markdown_text = inspect_obj(
     show_sample=True,
     format="markdown",
     write_to_file="report.md",
+)
+
+peekr.display_obj(
+    {"user": {"id": 1}, "items": [1, 2, 3]},
+    style="rule",  # 可选 "plain"、"blank"、"rule"
 )
 ```

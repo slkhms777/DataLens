@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,32 @@ def inspect_obj(
     return output
 
 
+def display_obj(
+    obj: Any,
+    *,
+    max_depth: int = 4,
+    max_dict_items: int = 8,
+    max_list_items: int = 1,
+    show_sample: bool = False,
+    format: str = "tree",
+    style: str = "rule",
+    stream: Any | None = None,
+) -> str:
+    """Inspect an in-memory object and print it with a terminal-friendly wrapper."""
+    output = inspect_obj(
+        obj,
+        max_depth=max_depth,
+        max_dict_items=max_dict_items,
+        max_list_items=max_list_items,
+        show_sample=show_sample,
+        format=format,
+        write_to_file=None,
+    )
+    wrapped = wrap_output(output, style=style)
+    print(wrapped, file=stream or sys.stdout)
+    return wrapped
+
+
 def inspect_file(
     path: str | Path,
     *,
@@ -68,6 +95,45 @@ def inspect_file(
         )
         target.write_text(output, encoding="utf-8")
     return output
+
+
+def display_file(
+    path: str | Path,
+    *,
+    max_depth: int = 4,
+    max_dict_items: int = 8,
+    max_list_items: int = 1,
+    show_sample: bool = False,
+    format: str = "tree",
+    style: str = "rule",
+    stream: Any | None = None,
+) -> str:
+    """Inspect a file and print it with a terminal-friendly wrapper."""
+    output = inspect_file(
+        path,
+        max_depth=max_depth,
+        max_dict_items=max_dict_items,
+        max_list_items=max_list_items,
+        show_sample=show_sample,
+        format=format,
+        write_to_file=None,
+    )
+    wrapped = wrap_output(output, style=style)
+    print(wrapped, file=stream or sys.stdout)
+    return wrapped
+
+
+def wrap_output(text: str, *, style: str = "rule") -> str:
+    """Wrap inspection text for clearer terminal display."""
+    normalized = style.lower()
+    if normalized == "plain":
+        return text
+    if normalized == "blank":
+        return f"\n{text}\n"
+    if normalized == "rule":
+        line = "-" * 40
+        return f"{line}\n{text}\n{line}"
+    raise ValueError(f"Unsupported display style: {style}")
 
 
 def resolve_output_path(
